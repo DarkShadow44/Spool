@@ -16,6 +16,7 @@ import net.minecraft.world.chunk.IChunkProvider;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -24,6 +25,8 @@ import com.gamma.gammalib.util.concurrent.IThreadSafe;
 import com.gamma.spool.api.annotations.Synchronize;
 import com.gamma.spool.async.EntityLoadingAsync;
 import com.gamma.spool.core.SpoolCompat;
+import com.gamma.spool.util.distancemk2.ChunkExecutorInfo;
+import com.gamma.spool.util.distancemk2.IChunkExecutorInfoAccessor;
 import com.gtnewhorizons.angelica.config.AngelicaConfig;
 import com.gtnewhorizons.angelica.utils.ConcurrentTileEntityMap;
 
@@ -31,7 +34,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
 
 @Mixin(value = Chunk.class, priority = 1001)
-public abstract class ChunkMixin implements IThreadSafe {
+public abstract class ChunkMixin implements IThreadSafe, IChunkExecutorInfoAccessor {
 
     @Shadow
     public List<Entity>[] entityLists;
@@ -97,4 +100,12 @@ public abstract class ChunkMixin implements IThreadSafe {
     @Shadow
     @Synchronize(on = "Lnet/minecraft/world/chunk/Chunk;precipitationHeightMap:[I")
     public abstract int getPrecipitationHeight(int x, int y);
+
+    @Unique
+    private final ChunkExecutorInfo spool$chunkExecutorInfo = new ChunkExecutorInfo((Chunk) (Object) this);
+
+    @Override
+    public ChunkExecutorInfo spool$getChunkExecutorInfo() {
+        return spool$chunkExecutorInfo;
+    }
 }

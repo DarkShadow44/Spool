@@ -34,9 +34,8 @@ import com.gamma.spool.thread.KeyedPoolThreadManager;
 import com.gamma.spool.thread.LBKeyedPoolThreadManager;
 import com.gamma.spool.thread.ManagerNames;
 import com.gamma.spool.util.MinecraftTasks;
-import com.gamma.spool.util.caching.RegisteredCache;
 import com.gamma.spool.util.concurrent.AsyncProfiler;
-import com.gamma.spool.util.distance.DistanceThreadingUtil;
+import com.gamma.spool.util.distancemk2.DistanceUtil;
 
 import it.unimi.dsi.fastutil.ints.IntSet;
 
@@ -74,12 +73,8 @@ public abstract class MinecraftServerMixin implements ICommandSender, Runnable, 
         this.theProfiler.startSection("spoolWaiting");
         SpoolManagerOrchestrator.REGISTERED_THREAD_MANAGERS.values()
             .forEach(IThreadManager::waitUntilAllTasksDone);
-        this.theProfiler.endStartSection("spoolClearCaches");
-        if (ThreadsConfig.isDistanceThreadingEnabled() && DistanceThreadingUtil.isInitialized()) {
-            RegisteredCache cache = SpoolManagerOrchestrator.REGISTERED_CACHES.get(ManagerNames.DISTANCE);
-            cache.updateCachedSize();
-            cache.getCache()
-                .invalidate(true);
+        if (DistanceUtil.enabled()) {
+            DistanceUtil.waitForAll();
         }
         this.theProfiler.endSection();
         this.theProfiler.endSection();

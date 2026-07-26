@@ -38,10 +38,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.gamma.spool.api.annotations.Synchronize;
 import com.gamma.spool.config.ThreadsConfig;
-import com.gamma.spool.util.MinecraftTasks;
 import com.gamma.spool.util.RWLockedList;
 import com.gamma.spool.util.SidedLock;
-import com.gamma.spool.util.distance.DistanceThreadingExecutors;
+import com.gamma.spool.util.distancemk2.DistanceUtil;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 
@@ -145,8 +144,9 @@ public abstract class WorldMixin {
 
                 try {
                     ++entity.ticksExisted;
-                    if (!this.isRemote && ThreadsConfig.isDistanceThreadingEnabled())
-                        DistanceThreadingExecutors.execute(entity, entity::onUpdate);
+                    if (!this.isRemote && ThreadsConfig.isDistanceThreadingEnabled() && DistanceUtil.enabled())
+                        DistanceUtil.getExecutor(entity)
+                            .execute(entity::onUpdate);
                     else entity.onUpdate();
                 } catch (Throwable throwable2) {
                     crashreport = CrashReport.makeCrashReport(throwable2, "Ticking entity");
@@ -212,9 +212,11 @@ public abstract class WorldMixin {
 
                 if (!entity.isDead) {
                     try {
-                        if (!this.isRemote && ThreadsConfig.isDistanceThreadingEnabled())
-                            DistanceThreadingExecutors.execute(entity, MinecraftTasks::entityTask, instance, entity);
-                        else instance.updateEntity(entity);
+                        if (!this.isRemote && ThreadsConfig.isDistanceThreadingEnabled() && DistanceUtil.enabled()) {
+                            final Entity entityFinal = entity;
+                            DistanceUtil.getExecutor(entity)
+                                .execute(() -> instance.updateEntity(entityFinal));
+                        } else instance.updateEntity(entity);
                     } catch (Throwable throwable1) {
                         crashreport = CrashReport.makeCrashReport(throwable1, "Ticking entity");
                         crashreportcategory = crashreport.makeCategory("Entity being ticked");
@@ -289,8 +291,9 @@ public abstract class WorldMixin {
                     && instance.blockExists(tileentity.xCoord, tileentity.yCoord, tileentity.zCoord)) {
                     try {
                         // No lambda optimization needed here, already method reference!
-                        if (!this.isRemote && ThreadsConfig.isDistanceThreadingEnabled())
-                            DistanceThreadingExecutors.execute(tileentity, tileentity::updateEntity);
+                        if (!this.isRemote && ThreadsConfig.isDistanceThreadingEnabled() && DistanceUtil.enabled())
+                            DistanceUtil.getExecutor(instance, tileentity.xCoord >> 4, tileentity.zCoord >> 4)
+                                .execute(tileentity::updateEntity);
                         else tileentity.updateEntity();
                     } catch (Throwable throwable) {
                         crashreport = CrashReport.makeCrashReport(throwable, "Ticking block entity");

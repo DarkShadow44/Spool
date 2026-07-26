@@ -13,7 +13,6 @@ import com.gamma.spool.thread.LBKeyedPoolThreadManager;
 import com.gamma.spool.thread.ManagerNames;
 import com.gamma.spool.thread.TimedOperationThreadManager;
 import com.gamma.spool.util.caching.RegisteredCache;
-import com.gamma.spool.util.distance.DistanceThreadingUtil;
 
 @SkipSpoolASMChecks(SkipSpoolASMChecks.SpoolASMCheck.ALL)
 public class SpoolManagerOrchestrator {
@@ -29,8 +28,6 @@ public class SpoolManagerOrchestrator {
             ManagerNames.THREAD_MANAGER_TIMER,
             new TimedOperationThreadManager(ManagerNames.THREAD_MANAGER_TIMER.getName(), 1));
         SpoolLogger.info("Thread manager timer initialized.");
-
-        startDistanceManager();
 
         if (ThreadsConfig.isDimensionThreadingEnabled()) {
 
@@ -52,20 +49,6 @@ public class SpoolManagerOrchestrator {
                 ManagerNames.ENTITY_AI,
                 new ForkThreadManager(ManagerNames.ENTITY_AI.getName(), ThreadsConfig.entityAIMaxThreads));
             SpoolLogger.info("Entity AI manager initialized.");
-        }
-    }
-
-    public static void startDistanceManager() {
-        if (ThreadsConfig.isDistanceThreadingEnabled()) {
-
-            KeyedPoolThreadManager pool = new KeyedPoolThreadManager(
-                ManagerNames.DISTANCE.getName(),
-                ThreadsConfig.distanceMaxThreads);
-
-            REGISTERED_THREAD_MANAGERS.put(ManagerNames.DISTANCE, pool);
-            REGISTERED_CACHES.put(ManagerNames.DISTANCE, new RegisteredCache(DistanceThreadingUtil.cache));
-
-            SpoolLogger.info("Distance manager initialized.");
         }
     }
 }

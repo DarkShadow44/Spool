@@ -7,12 +7,9 @@ import java.util.Objects;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
-
-import org.jctools.maps.NonBlockingHashMapLong;
 
 import com.gamma.spool.Tags;
 import com.gamma.spool.config.DebugConfig;
@@ -29,16 +26,8 @@ import com.gamma.spool.thread.ThreadManager;
 import com.gamma.spool.thread.TimedOperationThreadManager;
 import com.gamma.spool.util.BusLatch;
 import com.gamma.spool.util.caching.RegisteredCache;
-import com.gamma.spool.util.distance.DistanceThreadingPlayerUtil;
-import com.gamma.spool.util.distance.DistanceThreadingUtil;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import it.unimi.dsi.fastutil.longs.LongArraySet;
-import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 
@@ -173,89 +162,7 @@ public class GuiStats extends GuiScreen {
         } else if (currentScreen == DISTANCE_STATS) {
             Entry distanceEntry = new Entry("Distance Threading Stats");
             if (ThreadsConfig.isDistanceThreadingEnabled()) {
-                Entry playerStats = new Entry("Player executor stats");
-                Object2IntMap<EntityPlayer> playerExecutorMap = DistanceThreadingUtil.getPlayerExecutorMap();
-                for (EntityPlayer player : MinecraftServer.getServer()
-                    .getConfigurationManager().playerEntityList) {
-                    playerStats.add(player.getDisplayName(), playerExecutorMap.getInt(player));
-                    Entry nearbyEntry = new Entry("Nearby");
-                    DistanceThreadingUtil.Nearby nearby = DistanceThreadingUtil.cache
-                        .getCachedNearestPlayer(player.worldObj, DistanceThreadingPlayerUtil.playerHashcode(player));
-                    if (nearby == null) {
-                        nearbyEntry.add(EnumChatFormatting.RED + "Recalculating caches..." + EnumChatFormatting.RESET);
-                    } else {
-                        nearbyEntry.add(
-                            "Closest",
-                            nearby.nearest() != null ? nearby.nearest()
-                                .getDisplayName() : "None");
-                        StringBuilder listOfNearby = new StringBuilder();
-                        if (nearby.nearby()
-                            .isEmpty()) {
-                            listOfNearby.append("0: []");
-                        } else {
-                            listOfNearby.append(
-                                nearby.nearby()
-                                    .size())
-                                .append(": [");
-                            for (EntityPlayer nearbyPlayer : nearby.nearby()) {
-                                listOfNearby.append(nearbyPlayer.getDisplayName());
-                                listOfNearby.append(", ");
-                            }
-                            listOfNearby.delete(listOfNearby.length() - 2, listOfNearby.length());
-                            listOfNearby.append("]");
-                        }
-                        nearbyEntry.add("All close", listOfNearby.toString());
-                        nearbyEntry.add("Ignored limit?", nearby.usedIgnoreLimit());
-                    }
-                    playerStats.add(nearbyEntry);
-                }
-                distanceEntry.add(playerStats);
-
-                Long2IntMap chunkExecutorMap = DistanceThreadingUtil.getChunkExecutorMap();
-                Int2ObjectMap<LongSet> reverseChunkExecutorMap = new Int2ObjectOpenHashMap<>();
-                for (Long2IntMap.Entry entry : chunkExecutorMap.long2IntEntrySet()) {
-                    if (reverseChunkExecutorMap.containsKey(entry.getIntValue()))
-                        reverseChunkExecutorMap.get(entry.getIntValue())
-                            .add(entry.getLongKey());
-                    else reverseChunkExecutorMap.put(entry.getIntValue(), LongArraySet.of(entry.getLongKey()));
-                }
-
-                Entry forcedChunkStats = new Entry("Forced chunk executor stats");
-
-                for (Int2ObjectMap.Entry<LongSet> entry : reverseChunkExecutorMap.int2ObjectEntrySet()) {
-                    Entry chunkEntry = new Entry("Executor", entry.getIntKey());
-                    chunkEntry.add(
-                        "Chunks covered",
-                        entry.getValue()
-                            .size());
-                    forcedChunkStats.add(chunkEntry);
-                }
-
-                distanceEntry.add(forcedChunkStats);
-
-                Entry cacheStats = new Entry("Cache data");
-                cacheStats
-                    .add("Forced chunk count across all worlds", DistanceThreadingUtil.cache.getAmountOfLoadedChunks());
-                for (World world : MinecraftServer.getServer().worldServers) {
-                    Entry worldEntry = new Entry("World", world.provider.dimensionId);
-                    LongSet processedChunksSet = DistanceThreadingUtil.cache.getCachedProcessedChunks(world);
-                    worldEntry
-                        .add("Forced chunk cache size", processedChunksSet != null ? processedChunksSet.size() : 0);
-
-                    NonBlockingHashMapLong<DistanceThreadingUtil.Nearby> nearbyPlayerList = DistanceThreadingUtil.cache
-                        .getCachedNearestPlayerList(world);
-                    worldEntry
-                        .add("Nearby (player) cache size", nearbyPlayerList != null ? nearbyPlayerList.size() : 0);
-
-                    NonBlockingHashMapLong<DistanceThreadingUtil.Nearby> nearbyChunkList = DistanceThreadingUtil.cache
-                        .getCachedNearestPlayerList(world);
-                    worldEntry.add("Nearby (chunk) cache size", nearbyChunkList != null ? nearbyChunkList.size() : 0);
-
-                    cacheStats.add(worldEntry);
-                }
-
-                distanceEntry.add(cacheStats);
-
+                distanceEntry.add("TODO");
             } else {
                 distanceEntry.add("Distance threading disabled.");
             }

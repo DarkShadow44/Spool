@@ -21,7 +21,7 @@ import com.gamma.spool.thread.KeyedPoolThreadManager;
 import com.gamma.spool.thread.LBKeyedPoolThreadManager;
 import com.gamma.spool.thread.ManagerNames;
 import com.gamma.spool.util.BusLatchRegistry;
-import com.gamma.spool.util.distance.DistanceThreadingUtil;
+import com.gamma.spool.util.distancemk2.DistanceUtil;
 import com.gamma.spool.watchdog.Watchdog;
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.gtnhlib.eventbus.EventBusSubscriber;
@@ -93,10 +93,6 @@ public class Spool {
                         builder.append(
                             manager.getClass()
                                 .getSimpleName());
-
-                        if (ThreadsConfig.isDistanceThreadingEnabled()
-                            && manager == DistanceThreadingUtil.getKeyedPool())
-                            builder.append("\n\t\t\tPool is linked to DistanceThreadingUtil");
 
                         builder.append("\n\t\t\tPool active: ");
                         builder.append(manager.isStarted());
@@ -234,20 +230,8 @@ public class Spool {
         event.registerServerCommand(new CommandSpool());
 
         if (ThreadsConfig.isDistanceThreadingEnabled()) {
-            if (event.getServer()
-                .isSinglePlayer()) {
-                SpoolLogger.info("Singleplayer detected, tearing down DistanceThreadingUtil if initialized...");
-                if (DistanceThreadingUtil.isInitialized()) {
-                    DistanceThreadingUtil.teardown();
-                }
-
-                SpoolManagerOrchestrator.REGISTERED_CACHES.remove(ManagerNames.DISTANCE);
-                SpoolManagerOrchestrator.REGISTERED_THREAD_MANAGERS.remove(ManagerNames.DISTANCE);
-                ThreadsConfig.forceDisableDistanceThreading = true;
-            } else {
-                DistanceThreadingUtil
-                    .init(SpoolManagerOrchestrator.REGISTERED_THREAD_MANAGERS.get(ManagerNames.DISTANCE));
-            }
+            SpoolLogger.info("Enabling distance threading...");
+            DistanceUtil.enable();
         }
 
         SpoolLogger.info("Spool threads started successfully.");
@@ -272,13 +256,9 @@ public class Spool {
         SpoolManagerOrchestrator.REGISTERED_THREAD_MANAGERS.values()
             .forEach(IThreadManager::terminatePool);
 
-        if (ThreadsConfig.isDistanceThreadingEnabled()) DistanceThreadingUtil.teardown();
-
-        if (ThreadsConfig.forceDisableDistanceThreading && ThreadsConfig.shouldDistanceThreadingBeEnabled()) {
-            // If it was disabled due to single-player.
-            SpoolLogger.info("Disabled distance threading override.");
-            ThreadsConfig.forceDisableDistanceThreading = false;
-            SpoolManagerOrchestrator.startDistanceManager();
+        if (DistanceUtil.enabled()) {
+            SpoolLogger.info("Disabling distance threading...");
+            DistanceUtil.disable();
         }
 
         SpoolLogger.info("Spool threads terminated.");

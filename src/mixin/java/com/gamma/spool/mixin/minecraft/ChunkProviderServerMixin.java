@@ -21,6 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.gamma.spool.api.annotations.Synchronize;
 import com.gamma.spool.util.MCLongHashMap;
 import com.gamma.spool.util.RWLockedLongSet;
+import com.gamma.spool.util.distancemk2.ILoadedChunkAccessor;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -28,7 +29,7 @@ import it.unimi.dsi.fastutil.objects.ObjectLists;
 
 // Apply after Hodgepodge's mixins
 @Mixin(value = ChunkProviderServer.class, priority = 1001)
-public abstract class ChunkProviderServerMixin {
+public abstract class ChunkProviderServerMixin implements ILoadedChunkAccessor {
 
     @Shadow
     public LongHashMap loadedChunkHashMap;
@@ -68,4 +69,12 @@ public abstract class ChunkProviderServerMixin {
     @Shadow
     @Synchronize(on = "this")
     public abstract void populate(IChunkProvider provider, int x, int z);
+
+    @Shadow
+    public abstract List<Chunk> func_152380_a();
+
+    @Override
+    public List<Chunk> spool$getAllLoadedChunks() {
+        return func_152380_a();
+    }
 }

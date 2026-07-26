@@ -25,6 +25,7 @@ import org.spongepowered.asm.util.Bytecode;
 import com.gamma.gammalib.asm.util.ObfuscatedClassHandler;
 import com.gamma.spool.asm.checks.UnsafeIterationHandler;
 import com.gamma.spool.core.SpoolCoreMod;
+import com.gamma.spool.core.SpoolLogger;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -142,7 +143,15 @@ public class SynchronizationInjectionHelper {
                 if (fieldDescriptors == null) continue;
                 for (String fieldDescriptor : fieldDescriptors) {
                     if (fieldDescriptor == null || fieldDescriptor.isEmpty()) continue;
+                    SpoolLogger.logger.debug(
+                        "Spool beginning synchronization injection for " + mixinMethodNode.name
+                            + " on "
+                            + fieldDescriptor);
                     injectSynchronization(classNode, targetMethodNode, fieldDescriptor);
+                    SpoolLogger.logger.debug(
+                        "Spool finished synchronization injection for " + mixinMethodNode.name
+                            + " on "
+                            + fieldDescriptor);
                 }
             }
         }
@@ -187,6 +196,13 @@ public class SynchronizationInjectionHelper {
     }
 
     private static void injectSynchronization(ClassNode classNode, MethodNode targetNode, String fieldDescriptor) {
+
+        if (fieldDescriptor.equals("this")) {
+            // lets see if this funk works,,,
+            targetNode.access |= Opcodes.ACC_SYNCHRONIZED;
+            return;
+        }
+
         InsnList before = new InsnList();
         InsnList after = new InsnList();
 
@@ -209,51 +225,52 @@ public class SynchronizationInjectionHelper {
             return; // Invalid format
         }
 
-        String fieldType;
-        if (!fieldDescriptor.equals("this")) {
-            String ownerClass = fieldDescriptor.substring(1, firstSemicolon); // Remove leading 'L'
-            String srgOwnerClass = ownerClass;
-            // we have to reobfuscate this :fear:
-            if (SpoolCoreMod.isObfuscatedEnv) {
-                String obfName = ObfuscatedClassHandler.classSRGToObf(ownerClass);
-                ownerClass = obfName == null ? ownerClass : obfName;
-            }
+        String ownerClass = fieldDescriptor.substring(1, firstSemicolon); // Remove leading 'L'
+        String srgOwnerClass = ownerClass;
+        // we have to reobfuscate this :fear:
+        if (SpoolCoreMod.isObfuscatedEnv) {
+            SpoolLogger.logger.debug("Pre-reobfuscation class - " + ownerClass);
+            String obfName = ObfuscatedClassHandler.classSRGToObf(ownerClass);
+            ownerClass = obfName == null ? ownerClass : obfName;
+        }
+        SpoolLogger.logger.debug("Owner class - " + ownerClass);
 
-            String remainder = fieldDescriptor.substring(firstSemicolon + 1);
-            int colon = remainder.indexOf(':');
-            if (colon == -1) {
-                return; // Invalid format
-            }
+        String remainder = fieldDescriptor.substring(firstSemicolon + 1);
+        int colon = remainder.indexOf(':');
+        if (colon == -1) {
+            return; // Invalid format
+        }
 
-            String fieldName = remainder.substring(0, colon);
-            String staticCheckFieldName = fieldName;
-            fieldType = remainder.substring(colon + 1);
-            if (SpoolCoreMod.isObfuscatedEnv) {
-                // String obfName = ObfuscatedClassHandler.classSRGToObf(fieldType);
-                // fieldType = obfName == null ? fieldType : obfName;
+        String fieldName = remainder.substring(0, colon);
+        String staticCheckFieldName = fieldName;
+        String fieldType = remainder.substring(colon + 1);
+        if (SpoolCoreMod.isObfuscatedEnv) {
+            SpoolLogger.logger.debug("Pre-reobfuscation field name - " + fieldName);
+            // String obfName = ObfuscatedClassHandler.classSRGToObf(fieldType);
+            // fieldType = obfName == null ? fieldType : obfName;
 
-                // integrate this into gammalib eventually lmao
-                MappingFieldSrg obfName = ObfuscatedClassHandler.fieldMCPToSRG(srgOwnerClass, fieldName);
-                fieldName = obfName == null ? fieldName : obfName.getSimpleName();
+            // integrate this into gammalib eventually lmao
+            MappingFieldSrg obfName = ObfuscatedClassHandler.fieldMCPToSRG(srgOwnerClass, fieldName);
+            fieldName = obfName == null ? fieldName : obfName.getSimpleName();
 
-                obfName = ObfuscatedClassHandler.fieldMCPToObf(srgOwnerClass, fieldName);
-                staticCheckFieldName = obfName == null ? staticCheckFieldName : obfName.getSimpleName();
-            }
+            obfName = ObfuscatedClassHandler.fieldMCPToObf(srgOwnerClass, fieldName);
+            staticCheckFieldName = obfName == null ? staticCheckFieldName : obfName.getSimpleName();
+        }
+        SpoolLogger.logger.debug("Field name - " + fieldName);
+        SpoolLogger.logger.debug("Static check field name - " + staticCheckFieldName);
 
-            // Non-static fields only work on the current class, static fields work with any owner class.
-            before.add(startLabel);
+        // Non-static fields only work on the current class, static fields work with any owner class.
+        before.add(startLabel);
 
-            if (isFieldStatic(ownerClass, staticCheckFieldName))
-                before.add(new FieldInsnNode(Opcodes.GETSTATIC, srgOwnerClass, fieldName, fieldType)); // get static
-                                                                                                       // field
-            else {
-                before.add(new VarInsnNode(Opcodes.ALOAD, 0)); // get this
-                before.add(new FieldInsnNode(Opcodes.GETFIELD, srgOwnerClass, fieldName, fieldType)); // get field on
-                                                                                                      // this
-            }
+        if (isFieldStatic(ownerClass, staticCheckFieldName)) {
+            SpoolLogger.logger.debug("Injecting as static field");
+            // get static field
+            before.add(new FieldInsnNode(Opcodes.GETSTATIC, srgOwnerClass, fieldName, fieldType));
         } else {
-            fieldType = "L" + classNode.name + ";";
+            SpoolLogger.logger.debug("Injecting as non-static field");
             before.add(new VarInsnNode(Opcodes.ALOAD, 0)); // get this
+            // get field on this
+            before.add(new FieldInsnNode(Opcodes.GETFIELD, srgOwnerClass, fieldName, fieldType));
         }
 
         before.add(new InsnNode(Opcodes.DUP));

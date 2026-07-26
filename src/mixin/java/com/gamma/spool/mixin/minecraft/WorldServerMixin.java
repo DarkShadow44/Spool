@@ -40,7 +40,7 @@ import com.gamma.spool.core.SpoolLogger;
 import com.gamma.spool.util.MinecraftTasks;
 import com.gamma.spool.util.PendingTickList;
 import com.gamma.spool.util.UnmodifiableTreeSet;
-import com.gamma.spool.util.distance.DistanceThreadingExecutors;
+import com.gamma.spool.util.distancemk2.DistanceUtil;
 import com.mitchej123.hodgepodge.config.FixesConfig;
 import com.mitchej123.hodgepodge.hax.LongChunkCoordIntPairSet;
 
@@ -119,7 +119,10 @@ public abstract class WorldServerMixin extends World {
         else iterator = activeChunkSet.iterator();
         while (iterator.hasNext()) {
             ChunkCoordIntPair chunkcoordintpair = iterator.next();
-            MinecraftTasks.executeChunkTask(this, chunkcoordintpair);
+            if (ThreadsConfig.isDistanceThreadingEnabled() && DistanceUtil.enabled())
+                DistanceUtil.getExecutor(this, chunkcoordintpair.chunkXPos, chunkcoordintpair.chunkZPos)
+                    .execute(() -> MinecraftTasks.chunkTask(this, chunkcoordintpair));
+            else MinecraftTasks.chunkTask(this, chunkcoordintpair);
         }
     }
 
@@ -177,14 +180,9 @@ public abstract class WorldServerMixin extends World {
                             final int x = entry.xCoord;
                             final int y = entry.yCoord;
                             final int z = entry.zCoord;
-                            if (ThreadsConfig.isDistanceThreadingEnabled()) DistanceThreadingExecutors.execute(
-                                this,
-                                x,
-                                z,
-                                MinecraftTasks::blockTask,
-                                false,
-                                this,
-                                new MinecraftTasks.BlockTaskUnit(block, x, y, z));
+                            if (ThreadsConfig.isDistanceThreadingEnabled() && DistanceUtil.enabled())
+                                DistanceUtil.getExecutor(this, x >> 4, z >> 4)
+                                    .execute(() -> block.updateTick(this, x, y, z, this.rand));
                             else block.updateTick(this, x, y, z, this.rand);
                         } catch (Throwable throwable1) {
                             CrashReport crashreport = CrashReport

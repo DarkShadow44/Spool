@@ -22,7 +22,6 @@ import com.gamma.spool.config.ThreadsConfig;
 import com.gamma.spool.core.SpoolLogger;
 import com.gamma.spool.core.SpoolManagerOrchestrator;
 import com.gamma.spool.thread.ManagerNames;
-import com.gamma.spool.util.distance.DistanceThreadingPlayerUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -85,12 +84,11 @@ public class StatisticsManager {
 
         ImmutableMap<UUID, Integer> distanceThreadingPlayerHashcodeMap = null;
 
-        if (ThreadsConfig.enableDistanceThreading) {
+        if (ThreadsConfig.isDistanceThreadingEnabled()) {
             ImmutableMap.Builder<UUID, Integer> distanceThreadingPlayerHashcodeMapBuilder = new ImmutableMap.Builder<>();
 
             for (EntityPlayerMP player : mc.getConfigurationManager().playerEntityList) {
-                distanceThreadingPlayerHashcodeMapBuilder
-                    .put(player.getUniqueID(), DistanceThreadingPlayerUtil.playerHashcode(player));
+                distanceThreadingPlayerHashcodeMapBuilder.put(player.getUniqueID(), player.getEntityId());
             }
 
             distanceThreadingPlayerHashcodeMap = distanceThreadingPlayerHashcodeMapBuilder.build();

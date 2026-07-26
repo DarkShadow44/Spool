@@ -8,7 +8,7 @@ import com.gtnewhorizon.gtnhlib.config.Config;
 public class ThreadsConfig {
 
     @Config.Comment("Enables Spool's distance-based threading options. This is only really effective for servers where players are spread out large distances.")
-    @Config.DefaultBoolean(true)
+    @Config.DefaultBoolean(false)
     @Config.Name("Enable distance-based threading?")
     public static boolean enableDistanceThreading;
 
@@ -40,16 +40,8 @@ public class ThreadsConfig {
     @Config.RangeInt(min = 1, max = 16)
     public static int entityAIMaxThreads;
 
-    @Config.Ignore
-    // Disables distance threading if something doesn't like it.
-    public static boolean forceDisableDistanceThreading;
-
-    public static boolean shouldDistanceThreadingBeEnabled() {
-        return enableDistanceThreading && distanceMaxThreads >= 1;
-    }
-
     public static boolean isDistanceThreadingEnabled() {
-        return enableDistanceThreading && (!forceDisableDistanceThreading);
+        return enableDistanceThreading && distanceMaxThreads >= 1;
     }
 
     public static boolean isEntityAIThreadingEnabled() {

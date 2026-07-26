@@ -4,7 +4,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import net.minecraft.block.Block;
 import net.minecraft.crash.CrashReport;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.effect.EntityLightningBolt;
 import net.minecraft.init.Blocks;
 import net.minecraft.network.play.server.S03PacketTimeUpdate;
@@ -18,23 +17,9 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.DimensionManager;
 
-import com.gamma.spool.config.ThreadsConfig;
-import com.gamma.spool.util.distance.DistanceThreadingExecutors;
-import com.github.bsideup.jabel.Desugar;
-
 import cpw.mods.fml.common.FMLCommonHandler;
 
 public class MinecraftTasks {
-
-    public static void entityTask(World that, Entity entity) {
-        that.updateEntity(entity);
-    }
-
-    public static void executeChunkTask(World that, ChunkCoordIntPair chunkcoordintpair) {
-        if (ThreadsConfig.isDistanceThreadingEnabled()) DistanceThreadingExecutors
-            .execute(that, chunkcoordintpair, MinecraftTasks::chunkTask, that, chunkcoordintpair);
-        else MinecraftTasks.chunkTask(that, chunkcoordintpair);
-    }
 
     public static void chunkTask(World that, ChunkCoordIntPair pair) {
         int updateLCG = ThreadLocalRandom.current()
@@ -106,13 +91,6 @@ public class MinecraftTasks {
                 }
             }
         }
-    }
-
-    @Desugar
-    public record BlockTaskUnit(Block block, int x, int y, int z) {}
-
-    public static void blockTask(World that, BlockTaskUnit unit) {
-        unit.block.updateTick(that, unit.x, unit.y, unit.z, that.rand);
     }
 
     public static void dimensionTask(MinecraftServer that, int id) {
